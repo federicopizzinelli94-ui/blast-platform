@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import {
     Search, Sparkles, Radar, ArrowRight, CheckCircle,
-    Shield, XCircle, BarChart3, Building2, Globe, Gauge, ChevronDown, ChevronUp, X, MapPin
+    Shield, XCircle, BarChart3, Building2, Globe, Gauge, ChevronDown, ChevronUp, X, MapPin, StopCircle
 } from 'lucide-react'
 import { italianCities, regions } from '../data/italianCities'
 import { API_URL } from '../lib/api'
@@ -280,6 +280,18 @@ export default function SmartSearch() {
         setJobs(prev => prev.filter(j => j.id !== jobId))
     }
 
+    const handleStopSearch = async (jobId) => {
+        try {
+            const res = await fetch(`${API_URL}/stop-search/${jobId}`, { method: 'POST' })
+            if (!res.ok) throw new Error('Stop request failed')
+            setJobs(prev => prev.map(j =>
+                j.id === jobId ? { ...j, progress: 'Arresto in corso...' } : j
+            ))
+        } catch (error) {
+            console.error('Failed to stop search:', error)
+        }
+    }
+
     const toggleDiscarded = (jobId) => {
         setJobs(prev => prev.map(j => j.id === jobId ? { ...j, showDiscarded: !j.showDiscarded } : j))
     }
@@ -509,6 +521,18 @@ export default function SmartSearch() {
                                                 <span className="text-[10px] text-white/70">Score</span>
                                             </div>
                                         </div>
+                                    )}
+
+                                    {/* Stop button for running jobs */}
+                                    {job.status === 'running' && (
+                                        <button
+                                            onClick={() => handleStopSearch(job.id)}
+                                            className="flex items-center gap-1.5 px-3 py-1.5 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-lg transition-colors text-sm font-medium text-white"
+                                            title="Interrompi ricerca"
+                                        >
+                                            <StopCircle className="w-4 h-4" />
+                                            <span>Interrompi</span>
+                                        </button>
                                     )}
 
                                     {/* Remove button for completed/error */}

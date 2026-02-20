@@ -24,6 +24,15 @@ search_jobs = {}
 search_jobs_lock = threading.Lock()
 
 DEFAULT_MIN_SCORE = 50
+SEARCH_TIMEOUT_SECONDS = 300  # 5 minutes
+
+def is_stop_requested(job_id):
+    """Check if this job has been flagged for stopping (manual or timeout)."""
+    with search_jobs_lock:
+        job = search_jobs.get(job_id)
+        if not job:
+            return True
+        return job.get("stop_requested", False)
 
 # Province abbreviation mapping for common Italian cities
 CITY_TO_PROVINCE = {
@@ -157,8 +166,11 @@ def search_leads(product_id, location="Italia", limit=10, min_score=DEFAULT_MIN_
                 "discarded": [],
                 "below_threshold": [],
                 "stats": {"analyzed": 0, "accepted": 0, "discarded": 0, "below_threshold": 0, "avg_score": 0},
-                "created_at": time.time()
+                "created_at": time.time(),
+                "stop_requested": False
             }
+
+    search_start_time = time.time()
 
     def update_job(progress=None, **kwargs):
         if job_id:
@@ -237,6 +249,16 @@ def search_leads(product_id, location="Italia", limit=10, min_score=DEFAULT_MIN_
         search_done = False
 
         while not search_done:
+            # Check for stop request or timeout
+            if job_id and is_stop_requested(job_id):
+                print(f"🛑 Job {job_id} stop requested — exiting gracefully.")
+                break
+            if job_id and (time.time() - search_start_time) > SEARCH_TIMEOUT_SECONDS:
+                print(f"⏱️ Job {job_id} timed out after 5 minutes — exiting gracefully.")
+                with search_jobs_lock:
+                    search_jobs[job_id]["stop_requested"] = True
+                break
+
             # Check if ALL queries are exhausted
             all_exhausted = all(qs["exhausted"] for qs in query_states)
             if all_exhausted:
@@ -245,6 +267,11 @@ def search_leads(product_id, location="Italia", limit=10, min_score=DEFAULT_MIN_
 
             # Cycle through each keyword, one page each
             for qs in query_states:
+                # Check stop between keywords
+                if job_id and (is_stop_requested(job_id) or (time.time() - search_start_time) > SEARCH_TIMEOUT_SECONDS):
+                    search_done = True
+                    break
+
                 if accepted_count >= limit:
                     search_done = True
                     break
@@ -280,6 +307,11 @@ def search_leads(product_id, location="Italia", limit=10, min_score=DEFAULT_MIN_
                 qs["offset"] += 20
 
                 for item in page_results:
+                    # Check stop between individual leads
+                    if job_id and is_stop_requested(job_id):
+                        search_done = True
+                        break
+
                     if accepted_count >= limit:
                         break
 
@@ -463,7 +495,15 @@ def search_leads(product_id, location="Italia", limit=10, min_score=DEFAULT_MIN_
             print(f"   ⚠️  {warning}")
         print(f"{'='*60}\n")
 
-        if accepted_count >= limit:
+        # Determine if this was a stop/timeout
+        was_stopped = job_id and is_stop_requested(job_id)
+        was_timeout = was_stopped and (time.time() - search_start_time) > SEARCH_TIMEOUT_SECONDS
+
+        if was_timeout:
+            final_progress = f"Non sono stati trovati ulteriori contatti. Trovati {accepted_count} lead in 5 minuti"
+        elif was_stopped:
+            final_progress = f"Ricerca interrotta. Trovati {accepted_count} lead qualificati"
+        elif accepted_count >= limit:
             final_progress = f"Ricerca completata! Trovati {accepted_count} lead qualificati"
         elif accepted_count > 0:
             final_progress = f"Ricerca completata. Trovati {accepted_count}/{limit} lead qualificati (risultati esauriti)"
@@ -471,7 +511,8 @@ def search_leads(product_id, location="Italia", limit=10, min_score=DEFAULT_MIN_
             final_progress = f"Ricerca completata. Nessun lead con score ≥ {min_score} trovato"
 
         result = {"accepted": accepted, "discarded": discarded, "below_threshold": below_threshold, "stats": stats}
-        update_job(status="completed", progress=final_progress, completed_at=time.time(), **result)
+        stopped_reason = "timeout" if was_timeout else ("manual" if was_stopped else None)
+        update_job(status="completed", progress=final_progress, completed_at=time.time(), stopped_reason=stopped_reason, **result)
         return result
 
     except Exception as e:

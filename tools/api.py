@@ -131,6 +131,24 @@ def get_search_status(job_id: str):
 
     return job
 
+@app.post("/stop-search/{job_id}")
+def stop_search(job_id: str):
+    """Request graceful stop of a running search job."""
+    with search_jobs_lock:
+        job = search_jobs.get(job_id)
+
+    if not job:
+        raise HTTPException(status_code=404, detail="Job non trovato")
+
+    if job.get("status") != "running":
+        return {"status": "already_finished", "message": "La ricerca è già terminata"}
+
+    with search_jobs_lock:
+        search_jobs[job_id]["stop_requested"] = True
+
+    print(f"🛑 API: Stop requested for job {job_id}")
+    return {"status": "stop_requested", "message": "Arresto ricerca in corso..."}
+
 
 @app.post("/analyze-file")
 def run_analyze_file(request: AnalyzeFileRequest, background_tasks: BackgroundTasks):
