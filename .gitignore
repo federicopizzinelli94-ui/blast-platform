@@ -1,0 +1,26 @@
+# Env files con API keys
+tools/.env
+dashboard/.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+tools/leads.db
+
+# Node
+node_modules/
+dashboard/dist/
+
+# OS
+.DS_Store
+*.local
+
+# Temp
+.tmp/
+
+# Agent internals
+.agent/
+
+# Claude
+.claude/
