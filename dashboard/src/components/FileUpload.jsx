@@ -130,7 +130,7 @@ const FileUpload = forwardRef(function FileUpload({ existingFiles = [] }, ref) {
                     uploaded.push(fileRecord)
                     setAnalysisStatus(prev => ({ ...prev, [fileRecord.id]: 'analyzing' }))
 
-                    fetch('${API_URL}/analyze-file', {
+                    fetch(`${API_URL}/analyze-file`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({

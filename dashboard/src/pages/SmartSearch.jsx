@@ -202,7 +202,7 @@ export default function SmartSearch() {
         const productName = products.find(p => p.id === selectedProduct)?.name || 'Prodotto'
 
         try {
-            const response = await fetch('${API_URL}/search', {
+            const response = await fetch(`${API_URL}/search`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

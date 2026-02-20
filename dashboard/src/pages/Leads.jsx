@@ -449,7 +449,7 @@ export default function Leads() {
 
         setGeneratingEmail(lead.id)
         try {
-            const response = await fetch('${API_URL}/generate-email', {
+            const response = await fetch(`${API_URL}/generate-email`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ lead_id: lead.id })

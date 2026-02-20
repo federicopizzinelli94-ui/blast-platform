@@ -128,7 +128,7 @@ export default function Products() {
 
                 setSavingStatus('Generazione descrizione AI...')
                 try {
-                    await fetch('${API_URL}/synthesize-description', {
+                    await fetch(`${API_URL}/synthesize-description`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ product_id: productId })
@@ -169,7 +169,7 @@ export default function Products() {
                 // Re-synthesize with all files (old + new)
                 setSavingStatus('Rigenerazione descrizione AI...')
                 try {
-                    await fetch('${API_URL}/synthesize-description', {
+                    await fetch(`${API_URL}/synthesize-description`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ product_id: editingProduct.id })

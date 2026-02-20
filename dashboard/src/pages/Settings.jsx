@@ -19,7 +19,7 @@ export default function Settings() {
 
     const fetchUsers = async () => {
         try {
-            const res = await fetch('${API_URL}/list-users')
+            const res = await fetch(`${API_URL}/list-users`)
             if (!res.ok) throw new Error('Errore nel caricamento utenti')
             const data = await res.json()
             setUsers(data.users || [])
@@ -36,7 +36,7 @@ export default function Settings() {
         setMessage(null)
 
         try {
-            const res = await fetch('${API_URL}/create-user', {
+            const res = await fetch(`${API_URL}/create-user`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password })
@@ -70,7 +70,7 @@ export default function Settings() {
         setMessage(null)
 
         try {
-            const res = await fetch('${API_URL}/delete-user', {
+            const res = await fetch(`${API_URL}/delete-user`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ user_id: userId })
